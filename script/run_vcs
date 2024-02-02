@@ -1,0 +1,15 @@
+#!/bin/sh -e
+vcs '-debug_access' '-full64'  '-kdb' '-lca' \
+    -q \
+    +incdir+../rtl/ \
+    '-debug_access+r'  '-sverilog'  \
+    -timescale=1ns/1ps \
+    ../tb/tb_top.v \
+    -top tb_top \
+    -l vcs_compile.log
+    
+#    ../tb/top.sv \
+
+#../tb_c/tb_c &
+./simv | tee simv.log
+

@@ -35,7 +35,7 @@ module tea
     wire [2:0] m1_sel=rom_q[2:0];
     wire [2:0] m2_sel=rom_q[5:3];
     wire       x2_sel=rom_q[6];
-    
+
     assign rom_q=rom[c12];
 
 
@@ -123,7 +123,7 @@ module tea
         rom[0]={3'h0,3'h1,1'b0};
         // qreg <= (v1<<4) + k0
         rom[1]={3'h1,3'h0,1'b0};
-        
+
         rom[2]={3'h2,3'h2,1'b0};
         rom[3]={3'h0,3'h7,1'b1};
         rom[4]={3'h3,3'h3,1'b1};
