@@ -30,6 +30,30 @@ module regfile
     reg [7:0] mem0d;
     reg [7:0] mem0e;
     reg [7:0] mem0f;
+    reg [7:0] mem10;
+    reg [7:0] mem11;
+    reg [7:0] mem12;
+    reg [7:0] mem13;
+    reg [7:0] mem14;
+    reg [7:0] mem15;
+    reg [7:0] mem16;
+    reg [7:0] mem17;
+    reg [7:0] mem18;
+    reg [7:0] mem19;
+    reg [7:0] mem1a;
+    reg [7:0] mem1b;
+    reg [7:0] mem1c;
+    reg [7:0] mem1d;
+    reg [7:0] mem1e;
+    reg [7:0] mem1f;
+
+    wire [31:0] v0={mem03,mem02,mem01,mem00};
+    wire [31:0] v1={mem07,mem06,mem05,mem04};
+    wire [31:0] sum={mem0b,mem0a,mem09,mem08};
+    wire [31:0] t0={mem0f,mem0e,mem0d,mem0c};
+    wire [31:0] t1={mem13,mem12,mem11,mem10};
+
+    
     always@(posedge clk)begin
         if(we)begin
             case(addr)
@@ -51,6 +75,22 @@ module regfile
                 5'h0e:mem0e<=din;
                 5'h0f:mem0f<=din;
 
+                5'h10:mem10<=din;
+                5'h11:mem11<=din;
+                5'h12:mem12<=din;
+                5'h13:mem13<=din;
+                5'h14:mem14<=din;
+                5'h15:mem15<=din;
+                5'h16:mem16<=din;
+                5'h17:mem17<=din;
+                5'h18:mem18<=din;
+                5'h19:mem19<=din;
+                5'h1a:mem1a<=din;
+                5'h1b:mem1b<=din;
+                5'h1c:mem1c<=din;
+                5'h1d:mem1d<=din;
+                5'h1e:mem1e<=din;
+                5'h1f:mem1f<=din;
             endcase
         end
     end
@@ -128,11 +168,11 @@ module     tea_cpu
 
 
     wire instr_call    = (!instr[8])&&(instr[7:5]==3'h7) && (!instr[4]) && (instr[3:0]==4'h1) && INCLUDE_CALL;
-    wire instr_callc   = (!instr[8])&&(instr[7:5]==3'h7) && (instr[4] )&& (instr[3:0]==4'h1)  && INCLUDE_CALL;
+    wire instr_callc   = (!instr[8])&&(instr[7:5]==3'h7) && (instr[4] )&& (instr[2:0]==3'h1)  && INCLUDE_CALL;
     wire instr_jump    = (!instr[8])&&(instr[7:5]==3'h7) && (!instr[4]) && (instr[3:0]==4'h2) ;
-    wire instr_jumpc   = (!instr[8])&&(instr[7:5]==3'h7) && (instr[4] )&& (instr[3:0]==4'h2) ;
+    wire instr_jumpc   = (!instr[8])&&(instr[7:5]==3'h7) && (instr[4] )&& (instr[2:0]==4'h2) ;
     wire instr_return  = (!instr[8])&&(instr[7:5]==3'h7) && (!instr[4]) && (instr[3:0]==4'h3)  && INCLUDE_CALL;
-    wire instr_returnc = (!instr[8])&&(instr[7:5]==3'h7) && (instr[4]) && (instr[3:0]==4'h3)  && INCLUDE_CALL;
+    wire instr_returnc = (!instr[8])&&(instr[7:5]==3'h7) && (instr[4]) && (instr[2:0]==4'h3)  && INCLUDE_CALL;
 
     wire instr_imm     =  (instr[8]==1'b1);
     wire instr_io      =  (instr==9'h0_e4);
@@ -184,6 +224,9 @@ module     tea_cpu
                     3'h5: {cy,acc}<=#1 {cy,ioop_r?io_rddata:reg_value};        // load
                     3'h6: {cy,acc}<=#1 {cy,acc^reg_value};    // xor
                     3'h7: begin
+                        // 因为指令长度限制，没有寄存器空间了
+                        // 如果指令长度足够，移位的源操作数可以改成reg_value
+                        
                         if(instr[4:0]==5'h0_0)begin
                             {cy,acc}<=#1 {acc,cy};            //sl1
                         end
@@ -311,4 +354,5 @@ void decrypt (uint32_t v[2], const uint32_t k[4]) {
         v[0]=v0; v[1]=v1;
 }
 `endif
+
 
