@@ -29,8 +29,8 @@ module regfile
     reg [7:0] mem0c;
     reg [7:0] mem0d;
     reg [7:0] mem0e;
-    reg [7:0] mem0f;   
-        always@(posedge clk)begin
+    reg [7:0] mem0f;
+    always@(posedge clk)begin
         if(we)begin
             case(addr)
                 5'h00:mem00<=din;
@@ -41,7 +41,7 @@ module regfile
                 5'h05:mem05<=din;
                 5'h06:mem06<=din;
                 5'h07:mem07<=din;
-                
+
                 5'h08:mem08<=din;
                 5'h09:mem09<=din;
                 5'h0a:mem0a<=din;
@@ -76,8 +76,9 @@ module call_stack_mem
 endmodule
 
 module     tea_cpu
-    #(parameter PC_WIDTH=8,
-        parameter REGFILE_SIZE_WIDTH=5)
+    #(parameter PC_WIDTH=7,
+        parameter REGFILE_SIZE_WIDTH=5,
+        parameter INCLUDE_CALL=0)
     (
         input clk,
         input rst,
@@ -126,15 +127,16 @@ module     tea_cpu
     wire instr_sr1   =  (!instr[8])&&(instr[7:5]==3'h7) && instr[4] &&(instr[3:0]==4'h0);
 
 
-    wire instr_call    = (!instr[8])&&(instr[7:5]==3'h7) && (!instr[4]) && (instr[3:0]==4'h1);
-    wire instr_callc   = (!instr[8])&&(instr[7:5]==3'h7) && (instr[4] )&& (instr[3:0]==4'h1);
-    wire instr_jump    = (!instr[8])&&(instr[7:5]==3'h7) && (!instr[4]) && (instr[3:0]==4'h2);
-    wire instr_jumpc   = (!instr[8])&&(instr[7:5]==3'h7) && (instr[4] )&& (instr[3:0]==4'h2);
-    wire instr_return  = (!instr[8])&&(instr[7:5]==3'h7) && (!instr[4]) && (instr[3:0]==4'h3);
-    wire instr_returnc = (!instr[8])&&(instr[7:5]==3'h7) && (instr[4]) && (instr[3:0]==4'h3);
+    wire instr_call    = (!instr[8])&&(instr[7:5]==3'h7) && (!instr[4]) && (instr[3:0]==4'h1) && INCLUDE_CALL;
+    wire instr_callc   = (!instr[8])&&(instr[7:5]==3'h7) && (instr[4] )&& (instr[3:0]==4'h1)  && INCLUDE_CALL;
+    wire instr_jump    = (!instr[8])&&(instr[7:5]==3'h7) && (!instr[4]) && (instr[3:0]==4'h2) ;
+    wire instr_jumpc   = (!instr[8])&&(instr[7:5]==3'h7) && (instr[4] )&& (instr[3:0]==4'h2) ;
+    wire instr_return  = (!instr[8])&&(instr[7:5]==3'h7) && (!instr[4]) && (instr[3:0]==4'h3)  && INCLUDE_CALL;
+    wire instr_returnc = (!instr[8])&&(instr[7:5]==3'h7) && (instr[4]) && (instr[3:0]==4'h3)  && INCLUDE_CALL;
 
     wire instr_imm     =  (instr[8]==1'b1);
     wire instr_io      =  (instr==9'h0_e4);
+    wire instr_clc     =  (instr==9'h0_f4);
 
 
     reg ioop_r;
@@ -175,8 +177,8 @@ module     tea_cpu
         if(phase)begin
             if(instr[8]==1'b0) begin
                 case(instr[7:5])
-                    3'h0: {cy,acc}<=#1 {1'b0,acc}+reg_value+cy; // addcy
-                    3'h1: {cy,acc}<=#1 {1'b0,acc}-reg_value-cy; // subcy
+                    3'h0: {cy,acc}<=#1 reg_value+{1'b0,acc}+cy; // addcy
+                    3'h1: {cy,acc}<=#1 reg_value- {1'b0,acc}-cy; // subcy
                     3'h2: {cy,acc}<=#1 {cy,acc&reg_value};    // and
                     3'h3: {cy,acc}<=#1 {cy,acc|reg_value};    // or
                     3'h5: {cy,acc}<=#1 {cy,ioop_r?io_rddata:reg_value};        // load
@@ -309,3 +311,4 @@ void decrypt (uint32_t v[2], const uint32_t k[4]) {
         v[0]=v0; v[1]=v1;
 }
 `endif
+

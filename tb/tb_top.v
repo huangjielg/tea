@@ -96,6 +96,7 @@ module tb_top;
     localparam K1=32'h21_22_23_24;
     localparam K2=32'h31_32_33_34;
     localparam K3=32'h41_42_43_44;
+    localparam DELTA=32'h9E3779B9;
 
     function [31:0] sel_k;
         input [1:0]k_sel;
@@ -109,13 +110,16 @@ module tb_top;
         end
     endfunction
 
-
+    task clr_c;
+        begin
+            rom[i] = 9'hf4; i=i+1;   // clr_c
+        end
+    endtask
     task  v_add_sum;
         input [4:0] offset_in;
         input [4:0] offset_out;
         begin
-
-            rom[i] = 9'hf4; i=i+1;   // clr_c
+            clr_c;
             for(j=0;j<4;j=j+1) begin
                 rom[i] = 9'ha0+offset_in+j;i=i+1; // acc = @offset_in
                 rom[i] = 9'h0_08+j;i=i+1;  // acc <= acc+ sum08
@@ -124,13 +128,48 @@ module tb_top;
         end
     endtask
 
-    task  v_sl4_add_k;
-        input [4:0] offset_v;
-        input [4:0] offset_temp;
-        input [31:0] k;
+    task  sr5;
+        input [4:0] offset_in;
+        input [4:0] offset_out;
+        begin
+        end
+    endtask
+
+    task  sl4;
+        input [4:0] offset_in;
+        input [4:0] offset_out;
+        begin
+            
+        end
+    endtask
+
+    task  xor_reg;
+        input [4:0] offset_1;
+        input [4:0] offset_2;
+        input [4:0] offset_out;
         begin
 
+        end
+    endtask
+    task  add_reg;
+        input [4:0] offset_1;
+        input [4:0] offset_2;
+        input [4:0] offset_out;
+        begin
+        end
+    endtask
 
+    task  add_const;
+        input [4:0] offset_in;
+        input [31:0] v;
+        input [4:0] offset_out;
+        begin
+            rom[i] = 9'hf4; i=i+1;// clr_c
+            for(j=0;j<4;j=j+1) begin
+                rom[i] = {1'b1,v[j*8+:8]};i=i+1;  // acc <= imm
+                rom[i] = 9'h0_0+offset_in+j;i=i+1;  // acc <= acc+ reg
+                rom[i] = 9'h0_80+offset_out+j;i=i+1;  // reg <= acc
+            end
         end
     endtask
 
@@ -155,27 +194,24 @@ module tb_top;
         rom[i] = 9'h80+10;i=i+1;  // sum 0
         rom[i] = 9'h80+11;i=i+1;  // sum 0
 
-        rom[i] = 9'hf4; i=i+1;// clr_c
+        add_const(8,DELTA,8);
+        add_reg(4,8,12);
+        sl4(4,16);
+        add_const(16,K0,16);
+        xor_reg(12,16,12);
+        sr5(4,16);
+        add_const(16,K1,16);
+        xor_reg(12,16,12);
+        add_reg(0,12,0);
 
-        rom[i] = 9'h1_b9;i=i+1;  // acc <= b9
-        rom[i] = 9'h0_08;i=i+1;  // acc <= acc+ reg08
-        rom[i] = 9'h0_88;i=i+1;  // reg08 <= acc
-
-        rom[i] = 9'h1_79;i=i+1;  // acc <= 79
-        rom[i] = 9'h0_09;i=i+1;  // acc <= acc+ reg09
-        rom[i] = 9'h0_89;i=i+1;  // reg09 <= acc
-
-        rom[i] = 9'h1_37;i=i+1;  // acc <= 37
-        rom[i] = 9'h0_0a;i=i+1;  // acc <= acc+ reg0a
-        rom[i] = 9'h0_8a;i=i+1;  // reg0a <= acc
-
-        rom[i] = 9'h1_9e;i=i+1;  // acc <= 9e
-        rom[i] = 9'h0_0b;i=i+1;  // acc <= acc+ reg0b
-        rom[i] = 9'h0_8b;i=i+1;  // reg0b <= acc
-
-        //v1+sum
-        v_add_sum(4,12);
-
+        add_reg(0,8,12);
+        sl4(0,16);
+        add_const(16,K2,16);
+        xor_reg(12,16,12);
+        sr5(0,16);
+        add_const(16,K3,16);
+        xor_reg(12,16,12);
+        add_reg(0,12,0);
     end
 
 endmodule
