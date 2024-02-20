@@ -53,7 +53,7 @@ module regfile
     wire [31:0] t0={mem0f,mem0e,mem0d,mem0c};
     wire [31:0] t1={mem13,mem12,mem11,mem10};
 
-    
+
     always@(posedge clk)begin
         if(we)begin
             case(addr)
@@ -118,7 +118,7 @@ endmodule
 module     tea_cpu
     #(parameter PC_WIDTH=7,
         parameter REGFILE_SIZE_WIDTH=5,
-        parameter INCLUDE_CALL=0)
+        parameter INCLUDE_CALL=1)
     (
         input clk,
         input rst,
@@ -146,7 +146,7 @@ module     tea_cpu
     reg phase;
     always@(posedge clk)begin
         if(rst)begin
-            pc<= #1 10'h0;
+            pc<= #1 0;
             phase<=#1 1'b0;
         end else begin
             phase<=#1  ~phase;
@@ -166,13 +166,16 @@ module     tea_cpu
     wire instr_sl1   =  (!instr[8])&&(instr[7:5]==3'h7) && (!instr[4]) &&(instr[3:0]==4'h0);
     wire instr_sr1   =  (!instr[8])&&(instr[7:5]==3'h7) && instr[4] &&(instr[3:0]==4'h0);
 
-
     wire instr_call    = (!instr[8])&&(instr[7:5]==3'h7) && (!instr[4]) && (instr[3:0]==4'h1) && INCLUDE_CALL;
     wire instr_callc   = (!instr[8])&&(instr[7:5]==3'h7) && (instr[4] )&& (instr[2:0]==3'h1)  && INCLUDE_CALL;
+    //使用instr[3]作为条件取反
+    //
+
+
     wire instr_jump    = (!instr[8])&&(instr[7:5]==3'h7) && (!instr[4]) && (instr[3:0]==4'h2) ;
-    wire instr_jumpc   = (!instr[8])&&(instr[7:5]==3'h7) && (instr[4] )&& (instr[2:0]==4'h2) ;
+    wire instr_jumpc   = (!instr[8])&&(instr[7:5]==3'h7) && (instr[4] )&& (instr[2:0]==3'h2) ;
     wire instr_return  = (!instr[8])&&(instr[7:5]==3'h7) && (!instr[4]) && (instr[3:0]==4'h3)  && INCLUDE_CALL;
-    wire instr_returnc = (!instr[8])&&(instr[7:5]==3'h7) && (instr[4]) && (instr[2:0]==4'h3)  && INCLUDE_CALL;
+    wire instr_returnc = (!instr[8])&&(instr[7:5]==3'h7) && (instr[4]) && (instr[2:0]==3'h3)  && INCLUDE_CALL;
 
     wire instr_imm     =  (instr[8]==1'b1);
     wire instr_io      =  (instr==9'h0_e4);
@@ -226,7 +229,7 @@ module     tea_cpu
                     3'h7: begin
                         // 因为指令长度限制，没有寄存器空间了
                         // 如果指令长度足够，移位的源操作数可以改成reg_value
-                        
+
                         if(instr[4:0]==5'h0_0)begin
                             {cy,acc}<=#1 {acc,cy};            //sl1
                         end
@@ -251,31 +254,34 @@ module     tea_cpu
 
 
 
-    wire [9:0] call_stack_top;
+    wire [PC_WIDTH-1:0] call_stack_top;
     reg [3:0]  sp;
     wire[3:0]  call_stack_addr;
     always@(posedge clk)begin
         if(rst)begin
             sp<=#1 4'h0;
         end else begin
-            if(instr_call||(instr_callc&&(cy^instr[3])))begin
-                sp<=#1 sp+1'b1;
-            end
-            if(instr_return||(instr_returnc&&(cy^instr[3])))begin
-                sp<=#1 sp-1'b1;
+            if(phase) begin
+                if(instr_call||(instr_callc&&(cy^instr[3])))begin
+                    sp<=#1 sp+1'b1;
+                end
+                if(instr_return||(instr_returnc&&(cy^instr[3])))begin
+                    sp<=#1 sp-1'b1;
+                end
             end
         end
     end
 
 
-    assign call_stack_addr= (instr_call||(instr_callc&&cy))?sp:sp-1'b1;
+    assign call_stack_addr= (instr_return||instr_returnc)?sp-1'b1:sp;
 
-    call_stack_mem u_callstack_mem
+    call_stack_mem #(.PC_WIDTH(PC_WIDTH))
+    u_callstack_mem
     (
         .clk(clk),
         .addr(call_stack_addr),
-        .din(pc_next),
-        .we(instr_call||(instr_callc&&(cy^instr[3]))),
+        .din(pc+1'b1),
+        .we( (instr_call||(instr_callc&&(cy^instr[3])))&&phase),
         .dout(call_stack_top)
     );
 
@@ -284,7 +290,7 @@ module     tea_cpu
         if( instr_call||(instr_callc&&cy)
                 ||  instr_jump||(instr_jumpc&&(cy^instr[3]))
             )begin
-            pc_next=$signed(pc)+$signed(acc);
+            pc_next=$signed(pc)+$signed({acc,1'b0});
         end
         if(instr_return||(instr_returnc&&(cy^instr[3])))begin
             pc_next=call_stack_top;
@@ -301,7 +307,7 @@ endmodule
 // 0_101x_xxxx : load
 // 0_110x_xxxx : xor
 
-// 0_1110_0000 : sl0
+// 0_1110_0000 : sl1
 // 0_1111_0000 : sr1
 
 // 0_1110_0001 : call
